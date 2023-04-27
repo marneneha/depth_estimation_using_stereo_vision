@@ -16,6 +16,23 @@ def estimate_fundamental_mat(points1, points2):
     element_vec = vh[:,-1]
     Fundamental_mat = element_vec.reshape((3,3))
     return Fundamental_mat
+
+def get_start_end_pt(img1, img2, lines, points1, points2):
+    r, c, _ = img1.shape
+    for r, pt1, pt2 in zip(lines, points1, points2):
+          
+        color = tuple(np.random.randint(0, 255,
+                                        3).tolist())
+          
+        x0, y0 = map(int, [0, -r[2] / r[1] ])
+        x1, y1 = map(int, [c, -(r[2] + r[0] * c) / r[1] ])
+          
+        img1 = cv.line(img1, (x0, y0), (x1, y1), color, 1)
+        # img1 = cv.circle(img1,tuple(pt1), 5, color, -1)
+        # img2 = cv.circle(img2, tuple(pt2), 5, color, -1)
+    return img1, img2
+    # return start_pt, end_pt
+    
 img1 = cv.imread('artroom/im0.png')
 img2 = cv.imread('artroom/im1.png')
 sift = cv.SIFT_create()
@@ -39,7 +56,7 @@ for i in range(Max_Ransac_iteration):
     F_best = []
     error = 0
     inliers_count = 0
-    absilon = 0.05
+    absilon = 0.5
     eight_points1 = np.float32([keypoints1[m.queryIdx].pt for m in random.sample(raw_matches12,8)])
     eight_points2 = np.float32([keypoints2[m.trainIdx].pt for m in random.sample(raw_matches12,8)])
     Fundamental_mat = estimate_fundamental_mat(eight_points1, eight_points2)
@@ -69,6 +86,18 @@ print("Rotation vec is \n", Rotation_mat)
 print("translation vector is \n", Center_vector)
 print("Determininant of rotation matrix is \n", Deter)
 
+
+# epilines
+lines2 = cv.computeCorrespondEpilines(points1.reshape(-1,1,2),2, F_best)
+lines1 = cv.computeCorrespondEpilines(points2.reshape(-1,1,2),2, F_best)
+lines1 = lines1.reshape(-1, 3)
+lines2 = lines2.reshape(-1, 3)
+print(img1.shape)
+img1, img2 = get_start_end_pt(img1, img2, lines1, points1, points2)
+img1, img2 = get_start_end_pt(img2, img1, lines2, points2, points1)
+# print(start_pt1)
+# print(end_pt1)
+# for s_1,e_1 in start_pt1, end_pt1:(cv.line(img1,s_1,e_1, (255,0,0), thickness=1))
 cv.imshow('image0', img1)
 cv.imshow('image1', img2)
 cv.waitKey(0)
