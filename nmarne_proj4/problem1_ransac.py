@@ -34,40 +34,40 @@ concatenated_matrix1 = np.concatenate((points1, array_of_ones.T), axis=1)
 concatenated_matrix2 = np.concatenate((points2, array_of_ones.T), axis=1)
 for i in range(Max_Ransac_iteration):
     # estimate the fundamantal mat
-    eight_points1 = np.float32([keypoints1[m.queryIdx].pt for m in random.sample(raw_matches12,8)])
-    eight_points2 = np.float32([keypoints2[m.trainIdx].pt for m in random.sample(raw_matches12,8)])
-    Fundamental_mat = estimate_fundamental_mat(eight_points1, eight_points2)
-    # print(Fundamental_mat)
     max_inliers= 0
     S = []
     F_best = []
     error = 0
+    inliers_count = 0
     absilon = 0.05
-    row_error,row_error_ = concatenated_matrix1 @ Fundamental_mat.T, concatenated_matrix2 @ Fundamental_mat
-    error = np.sum(np.array(row_error_* concatenated_matrix1.T), axis = 1, keepdims=True)**2/np.sum(np.array(np.hstack((row_error[:, :-1],row_error_[:,:-1])))**2, axis = 1, keepdims=True)
-    inliers = error<=absilon
-    counter = np.sum(inliers)
-    # print("m here")
-    if max_inliers <  counter:
-        max_inliers = counter
+    eight_points1 = np.float32([keypoints1[m.queryIdx].pt for m in random.sample(raw_matches12,8)])
+    eight_points2 = np.float32([keypoints2[m.trainIdx].pt for m in random.sample(raw_matches12,8)])
+    Fundamental_mat = estimate_fundamental_mat(eight_points1, eight_points2)
+    for j in range(len(points1)):
+        temp = np.dot(concatenated_matrix2[j,:],Fundamental_mat)
+        error = np.dot(temp, concatenated_matrix1[j,:].T)
+        if error<absilon:
+            inliers_count = inliers_count+1
+    if max_inliers <  inliers_count:
+        max_inliers = inliers_count
         F_best = Fundamental_mat
-        print("m here")
-    # for all point project one image point onto other to check if its less than abselon
 
-    # if n is less than chnage best fundamental matrix
 
 calib_file = open("artroom/calib.txt","r")
 calib_string = calib_file.readline()
 calib_mat = np.matrix(calib_string[5:])
 Essential_mat = np.dot(calib_mat.T,F_best, calib_mat)
-print(Essential_mat)
-
 W = np.matrix('0 -1 0; 1 0 0; 0 0 1')
 u_Ess, s_ess, vh_Ess = np.linalg.svd(Essential_mat, full_matrices=True)
 Center_vector = u_Ess[:,-1]
 Rotation_mat = np.dot(u_Ess, W.T, vh_Ess)
-print(Center_vector)
-print(np.linalg.det(Rotation_mat))
+Deter = np.linalg.det(Rotation_mat)
+
+print("essesntail matrix is \n",Essential_mat)
+print("Fundamental matrix is \n",F_best)
+print("Rotation vec is \n", Rotation_mat)
+print("translation vector is \n", Center_vector)
+print("Determininant of rotation matrix is \n", Deter)
 
 cv.imshow('image0', img1)
 cv.imshow('image1', img2)
