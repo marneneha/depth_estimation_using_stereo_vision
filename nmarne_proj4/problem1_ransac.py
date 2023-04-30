@@ -3,6 +3,8 @@ import numpy as np
 import random
 from skimage.transform import warp, ProjectiveTransform
 import copy
+import sys
+np.set_printoptions(threshold=sys.maxsize)
 
 def estimate_fundamental_mat(points1, points2):
     # print(points1)
@@ -36,7 +38,8 @@ def get_start_end_pt(img1, img2, lines, points1, points2):
 img1 = cv.imread('artroom/im0.png')
 img2 = cv.imread('artroom/im1.png')
 
-
+baseline = 536.62
+focal_lense = 1733.74
 sift = cv.SIFT_create()
 img1 = cv.resize(img1, (0, 0), fx = 0.5, fy = 0.5)
 img2 = cv.resize(img2, (0, 0), fx = 0.5, fy = 0.5)
@@ -82,10 +85,10 @@ for i in range(Max_Ransac_iteration):
     if max_inliers <  inliers_count:
         max_inliers = inliers_count
         F_best = Fundamental_mat
-print("fundamental matrix before", Fundamental_mat)
-print("fundamental matrix before", F_best)
+# print("fundamental matrix before", Fundamental_mat)
+# print("fundamental matrix before", F_best)
 F_best, inliers = cv.findFundamentalMat(points1, points2, cv.FM_RANSAC)
-print("fundamental matrix afterwords", F_best)
+# print("fundamental matrix afterwords", F_best)
 # We select only inlier points
 concatenated_matrix1 = concatenated_matrix1[inliers.ravel() == 1]
 concatenated_matrix2 = concatenated_matrix2[inliers.ravel() == 1]
@@ -168,9 +171,14 @@ disparity_SGBM = stereo.compute(img1_rectified, img2_rectified)
 # Normalize the values to a range from 0..255 for a grayscale image
 disparity_SGBM = cv.normalize(disparity_SGBM, disparity_SGBM, alpha=255,beta=0, norm_type=cv.NORM_MINMAX)
 disparity_SGBM = np.uint8(disparity_SGBM)
+colored_image = cv.applyColorMap(disparity_SGBM, cv.COLORMAP_JET)
+# print(disparity_SGBM)
 cv.imshow("Disparity", disparity_SGBM)
-
-cv.imshow('img1_rectified', img1_rectified)
-cv.imshow('img2_rectified', img2_rectified)
+depth_image = np.divide(baseline*focal_lense, disparity_SGBM*0.9999)
+print(depth_image)
+cv.imshow("depth_image", depth_image)
+# cv.imshow("colored_map",colored_image)
+# cv.imshow('img1_rectified', img1_rectified)
+# cv.imshow('img2_rectified', img2_rectified)
 cv.waitKey(0)
 cv.destroyAllWindows() 
